@@ -175,7 +175,7 @@ def handle_tema_callback(call):
         link = f"https://disk.yandex.ru/d/{['APQE4mDwBTSbkA', 'BPjzUvFeiSOvVw', 'w_85PUK6rneizQ', 'JycaZ67-mUxadQ', 'aiykc237nTqJBg', 'qKQ3ZFQHg59wGQ'][int(tema_number)-1]}"
         bot.send_message(
             call.message.chat.id,
-            f!Тема {tema_number}: {topics[tema_number]}. Задание: Напиши конспект Лекции по ссылке в тетрадь. Не забудь про ДЗ! {link}"
+            f"Тема {tema_number}: {topics[tema_number]}. Задание: Напиши конспект Лекции по ссылке в тетрадь. Не забудь про ДЗ! {link}"
         )
     else:
         bot.send_message(call.message.chat.id, "Тема не найдена.")
