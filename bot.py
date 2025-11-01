@@ -1,13 +1,16 @@
 # bot.py
 # Telegram-бот «Отработочка» для студентов
-
 import os
 import telebot
 from telebot import types
 import random
+from flask import Flask, request
+
+# === FLASK APP FOR RENDER ===
+app = Flask(__name__)
 
 # === НАСТРОЙКИ И ИНИЦИАЛИЗАЦИЯ ===
-# Токен берётся из переменных окружения Render (не из .env!)
+# Токен берётся из переменных окружения Render
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 if not TELEGRAM_BOT_TOKEN:
@@ -42,16 +45,114 @@ def get_dz_markup():
 def get_tema_markup():
     markup = types.InlineKeyboardMarkup()
     topics = [
-        ("Системы счисления", "tema_1"),
-        ("Алгебра логики", "tema_2"),
-        ("Интернет", "tema_3"),
-        ("Защита информации", "tema_4"),
-        ("Текстовый процессор", "tema_5"),
-        ("Компьютерная графика", "tema_6")
+        ("Тема 1. Системы счисления", "tema_1"),
+        ("Тема 2. Алгебра логики", "tema_2"),
+        ("Тема 3. Интернет", "tema_3"),
+        ("Тема 4. Защита информации", "tema_4"),
+        ("Тема 5. Текстовый процессор", "tema_5"),
+        ("Тема 6. Компьютерная графика", "tema_6")
     ]
     for text, callback in topics:
         markup.add(types.InlineKeyboardButton(text, callback_data=callback))
     return markup
+
+# === ОБРАБОТЧИКИ TELEGRAM ===
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.send_message(
+        message.chat.id,
+        "Привет! Я бот для помощи с занятиями. Выберите опцию:",
+        reply_markup=main_markup
+    )
+
+@bot.message_handler(func=lambda message: True)
+def handle_all_messages(message):
+    if message.text == '👋 Привет':
+        bot.send_message(message.chat.id, "Привет! Чем могу помочь?")
+    elif message.text == '📓 Я пропустил занятие:(':
+        bot.send_message(
+            message.chat.id,
+            "Выберите тему занятия:",
+            reply_markup=get_tema_markup()
+        )
+    elif message.text == '📚 Сдать ДЗ':
+        bot.send_message(
+            message.chat.id,
+            "Выберите номер ДЗ:",
+            reply_markup=get_dz_markup()
+        )
+    elif message.text == '🎲 Какой у меня вариант?':
+        variant = random.randint(1, 20)
+        bot.send_message(
+            message.chat.id,
+            f"Ваш вариант: {variant}",
+            reply_markup=main_markup
+        )
+    else:
+        bot.send_message(
+            message.chat.id,
+            "Используйте кнопки для навигации",
+            reply_markup=main_markup
+        )
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call):
+    if call.data.startswith('tema_'):
+        tema_map = {
+            'tema_1': 'Системы счисления',
+            'tema_2': 'Алгебра логики', 
+            'tema_3': 'Интернет',
+            'tema_4': 'Защита информации',
+            'tema_5': 'Текстовый процессор',
+            'tema_6': 'Компьютерная графика'
+        }
+        tema_name = tema_map.get(call.data, 'неизвестная тема')
+        bot.send_message(
+            call.message.chat.id,
+            f"Материалы по теме '{tema_name}' скоро будут доступны!"
+        )
+    elif call.data.startswith('dz_'):
+        dz_num = call.data.split('_')[1]
+        bot.send_message(
+            call.message.chat.id,
+            f"Инструкции по сдаче ДЗ {dz_num} будут отправлены позже!"
+        )
+
+# === WEBHOOK FOR TELEGRAM (OPTIONAL) ===
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return 'OK', 200
+    return 'Forbidden', 403
+
+# === HEALTH CHECK FOR RENDER ===
+@app.route('/')
+def health_check():
+    return 'Bot is running!', 200
+
+# === MAIN ENTRY POINT ===
+if __name__ == '__main__':
+    # Start the Flask app on port 8000
+    port = int(os.environ.get('PORT', 8000))
+    print(f"Starting bot on port {port}...")
+    
+    # Start bot polling in background
+    import threading
+    def start_bot():
+        print("Bot started polling...")
+        bot.remove_webhook()
+        bot.infinity_polling()
+    
+    # Start bot in a separate thread
+    bot_thread = threading.Thread(target=start_bot)
+    bot_thread.daemon = True
+    bot_thread.start()
+    
+    # Start Flask app (this binds to the port)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 # === ОБРАБОТЧИКИ СООБЩЕНИЙ ===
 @bot.message_handler(commands=['start'])
