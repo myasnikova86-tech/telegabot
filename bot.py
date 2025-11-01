@@ -208,7 +208,7 @@ if __name__ == '__main__':
     
     # APPROACH 1: Use Polling (simpler)
     print("Бот запущен. Ожидание сообщений...")
-    port = int(os.environ.get('PORT', 8000))
+    port = int(os.environ.get('PORT', 10000))
     
     # Start Flask in a separate thread for health checks
     import threading
