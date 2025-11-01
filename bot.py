@@ -1,4 +1,3 @@
-# bot.py
 # Telegram-бот «Отработочка» для студентов
 import os
 import telebot
@@ -67,104 +66,6 @@ def send_welcome(message):
 
 @bot.message_handler(func=lambda message: True)
 def handle_all_messages(message):
-    if message.text == '👋 Привет':
-        bot.send_message(message.chat.id, "Привет! Чем могу помочь?")
-    elif message.text == '📓 Я пропустил занятие:(':
-        bot.send_message(
-            message.chat.id,
-            "Выберите тему занятия:",
-            reply_markup=get_tema_markup()
-        )
-    elif message.text == '📚 Сдать ДЗ':
-        bot.send_message(
-            message.chat.id,
-            "Выберите номер ДЗ:",
-            reply_markup=get_dz_markup()
-        )
-    elif message.text == '🎲 Какой у меня вариант?':
-        variant = random.randint(1, 20)
-        bot.send_message(
-            message.chat.id,
-            f"Ваш вариант: {variant}",
-            reply_markup=main_markup
-        )
-    else:
-        bot.send_message(
-            message.chat.id,
-            "Используйте кнопки для навигации",
-            reply_markup=main_markup
-        )
-
-@bot.callback_query_handler(func=lambda call: True)
-def handle_callback(call):
-    if call.data.startswith('tema_'):
-        tema_map = {
-            'tema_1': 'Системы счисления',
-            'tema_2': 'Алгебра логики', 
-            'tema_3': 'Интернет',
-            'tema_4': 'Защита информации',
-            'tema_5': 'Текстовый процессор',
-            'tema_6': 'Компьютерная графика'
-        }
-        tema_name = tema_map.get(call.data, 'неизвестная тема')
-        bot.send_message(
-            call.message.chat.id,
-            f"Материалы по теме '{tema_name}' скоро будут доступны!"
-        )
-    elif call.data.startswith('dz_'):
-        dz_num = call.data.split('_')[1]
-        bot.send_message(
-            call.message.chat.id,
-            f"Инструкции по сдаче ДЗ {dz_num} будут отправлены позже!"
-        )
-
-# === WEBHOOK FOR TELEGRAM (OPTIONAL) ===
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    if request.headers.get('content-type') == 'application/json':
-        json_string = request.get_data().decode('utf-8')
-        update = types.Update.de_json(json_string)
-        bot.process_new_updates([update])
-        return 'OK', 200
-    return 'Forbidden', 403
-
-# === HEALTH CHECK FOR RENDER ===
-@app.route('/')
-def health_check():
-    return 'Bot is running!', 200
-
-# === MAIN ENTRY POINT ===
-if __name__ == '__main__':
-    # Start the Flask app on port 8000
-    port = int(os.environ.get('PORT', 8000))
-    print(f"Starting bot on port {port}...")
-    
-    # Start bot polling in background
-    import threading
-    def start_bot():
-        print("Bot started polling...")
-        bot.remove_webhook()
-        bot.infinity_polling()
-    
-    # Start bot in a separate thread
-    bot_thread = threading.Thread(target=start_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-    
-    # Start Flask app (this binds to the port)
-    app.run(host='0.0.0.0', port=port, debug=False)
-
-# === ОБРАБОТЧИКИ СООБЩЕНИЙ ===
-@bot.message_handler(commands=['start'])
-def start(message):
-    bot.send_message(
-        message.chat.id,
-        "Привет! Ты что-то пропустил?",
-        reply_markup=main_markup
-    )
-
-@bot.message_handler(func=lambda msg: True)
-def handle_all_messages(message):
     try:
         user_text = message.text.lower()
 
@@ -186,15 +87,18 @@ def handle_all_messages(message):
             )
 
         elif user_text == '🎲 какой у меня вариант?':
+            variant = random.randint(1, 10)
             bot.send_message(
                 message.chat.id,
-                f"Ваше число: {random.randint(1, 10)}"
+                f"Ваш вариант: {variant}",
+                reply_markup=main_markup
             )
 
         else:
             bot.send_message(
                 message.chat.id,
-                "Не понял ваш запрос. Воспользуйтесь клавиатурой ниже."
+                "Не понял ваш запрос. Воспользуйтесь клавиатурой ниже.",
+                reply_markup=main_markup
             )
 
     except Exception as e:
@@ -264,12 +168,12 @@ def handle_dz_callback(call):
 def handle_tema_callback(call):
     tema_number = call.data[5:]
     topics = {
-        '1': "Системы счисления",
-        '2': "Алгебра логики",
-        '3': "Интернет",
-        '4': "Защита информации",
-        '5': "Текстовый процессор",
-        '6': "Компьютерная графика"
+        '1': "Тема 1. Системы счисления",
+        '2': "Тема 2. Алгебра логики",
+        '3': "Тема 3. Интернет",
+        '4': "Тема 4. Защита информации",
+        '5': "Тема 5. Текстовый процессор",
+        '6': "Тема 6. Компьютерная графика"
     }
 
     if tema_number in topics:
@@ -283,7 +187,44 @@ def handle_tema_callback(call):
 
     bot.answer_callback_query(call.id)
 
-# === ЗАПУСК БОТА ===
+# === WEBHOOK FOR TELEGRAM (OPTIONAL) ===
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return 'OK', 200
+    return 'Forbidden', 403
+
+# === HEALTH CHECK FOR RENDER ===
+@app.route('/')
+def health_check():
+    return 'Bot is running!', 200
+
+# === MAIN ENTRY POINT ===
 if __name__ == '__main__':
+    # Choose ONE approach: Polling OR Webhook, not both
+    
+    # APPROACH 1: Use Polling (simpler)
     print("Бот запущен. Ожидание сообщений...")
-    bot.polling(none_stop=True, timeout=60)
+    port = int(os.environ.get('PORT', 8000))
+    
+    # Start Flask in a separate thread for health checks
+    import threading
+    def start_flask():
+        app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    
+    flask_thread = threading.Thread(target=start_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    
+    # Start bot polling
+    bot.remove_webhook()
+    bot.infinity_polling(timeout=60)
+    
+    # APPROACH 2: Use Webhook (uncomment below and comment the polling approach above)
+    # port = int(os.environ.get('PORT', 8000))
+    # bot.remove_webhook()
+    # bot.set_webhook(url=f"https://your-render-app.onrender.com/webhook")
+    # app.run(host='0.0.0.0', port=port, debug=False)
